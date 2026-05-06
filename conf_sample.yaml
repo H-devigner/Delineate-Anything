@@ -72,6 +72,13 @@ polygonization_args:
   layer_name: fields
   override_if_exists: true
 
+instance_raster_args:
+  # Save the postprocessed instance-ID raster that is used for polygonization.
+  # Positive values are field instance IDs, negative values are background IDs, and 0 is nodata/background.
+  save: false
+  output_root: null
+  always_region_suffix: false
+
 filtering_args:
   # if True - automatically scale minimum_area_m2, minimum_part_area_m2, minimum_hole_area_m2 proportionally to pixel area of the input imagery
   automatic_area_scale: True

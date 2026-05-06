@@ -220,6 +220,30 @@ def execute_simplification(gpkg_path, layer_name, config, scale):
     simplify.simplify(full_config)
 
 
+def get_instance_raster_path(config, gpkg_path, region_counter, current_region, num_regions):
+    instance_config = config.get("instance_raster_args", {})
+    if not instance_config.get("save", False):
+        return None
+
+    tile_name = os.path.splitext(os.path.basename(gpkg_path))[0]
+    output_root = instance_config.get("output_root")
+    if output_root is None:
+        output_root = os.path.join(os.path.dirname(gpkg_path), "instance_rasters")
+
+    tile_output_dir = os.path.join(output_root, tile_name)
+    os.makedirs(tile_output_dir, exist_ok=True)
+
+    always_region_suffix = instance_config.get("always_region_suffix", False)
+    if num_regions == 1 and not always_region_suffix:
+        filename = f"{tile_name}.instances.tif"
+    else:
+        filename = (
+            f"{tile_name}.region_{region_counter:04d}"
+            f"_x{current_region[0]}_y{current_region[1]}.instances.tif"
+        )
+    return os.path.join(tile_output_dir, filename)
+
+
 
 def execute_delineation(models, planner, postproc_config, passes, dataloader_config, layer_info, lclu_path, lclu_config, full_config, device):
     gpkg = ogr.Open(layer_info[0], 1)
@@ -319,6 +343,16 @@ def execute_delineation(models, planner, postproc_config, passes, dataloader_con
 
             background = background_loader.get_background(planner.get_geotransform(), planner.region_size[0], planner.region_size[1], srs_wkt)
             postproc_handler.apply_background(background)
+
+            instance_raster_path = get_instance_raster_path(
+                full_config,
+                layer_info[0],
+                region_counter,
+                planner.current_region,
+                num_regions,
+            )
+            if instance_raster_path is not None:
+                postproc_handler.save_instance_raster(instance_raster_path, planner.get_geotransform())
 
             postproc_handler.polygonize(planner.get_geotransform(), layer_info)
             postproc_handler.clear()

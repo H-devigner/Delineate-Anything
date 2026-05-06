@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import time
 
@@ -7,7 +8,7 @@ from multiprocessing import shared_memory
 from .UnitedWorker import UnitedWorker
 from .IDMapper import IncrementalFastMapper
 
-from osgeo import ogr
+from osgeo import gdal, ogr
 import logging
 
 import cv2
@@ -215,6 +216,37 @@ class PostprocHandler:
             raise e
 
         logger.debug(f"Polygonization finished in {time.time() - t0} s.")
+
+    def save_instance_raster(self, output_path, geotransform):
+        t0 = time.time()
+        output_dir = os.path.dirname(output_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+
+        driver = gdal.GetDriverByName("GTiff")
+        options = [
+            "BIGTIFF=IF_SAFER",
+            "COMPRESS=DEFLATE",
+            "PREDICTOR=2",
+            "TILED=YES",
+            "NUM_THREADS=ALL_CPUS",
+        ]
+        height, width = self.instances_map.shape
+        dataset = driver.Create(output_path, width, height, 1, gdal.GDT_Int32, options)
+        if dataset is None:
+            raise RuntimeError(f"Could not create instance raster: {output_path}")
+
+        dataset.SetGeoTransform(geotransform)
+        dataset.SetProjection(self.srs_wkt)
+        band = dataset.GetRasterBand(1)
+        band.SetNoDataValue(0)
+        band.SetDescription("instance_id")
+        band.WriteArray(self.instances_map)
+        band.FlushCache()
+        dataset.FlushCache()
+        dataset = None
+
+        logger.info(f"Instance raster saved to {output_path} in {time.time() - t0:.2f} s.")
 
     def dispose(self):
         for worker in self.workers_list:
