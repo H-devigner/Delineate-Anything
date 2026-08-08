@@ -164,7 +164,7 @@ def execute(model_paths, config, verbose):
 
     lclu_mask_path = warp_lclu(mask_filepath, os.path.join(temp_folder, os.path.basename(src_folder) + ".lclu.tif"), 
                                tiffs[0], analyser.total_bounds, [analyser.pixel_size_x, analyser.pixel_size_y], 
-                               ["BIGTIFF=YES", "COMPRESS=ZSTD", "ZSTD_LEVEL=2", "TILED=YES", "NUM_THREADS=ALL_CPUS"])
+                               ["BIGTIFF=YES", "COMPRESS=ZSTD", "ZSTD_LEVEL=2", "TILED=YES", "NUM_THREADS=1"])
 
     gpkg_path, layer_name = create_geopackage_with_same_projection(
             output_path, config["polygonization_args"]["layer_name"], analyser.projection,

@@ -229,7 +229,7 @@ class PostprocHandler:
             "COMPRESS=DEFLATE",
             "PREDICTOR=2",
             "TILED=YES",
-            "NUM_THREADS=ALL_CPUS",
+            "NUM_THREADS=1",
         ]
         height, width = self.instances_map.shape
         dataset = driver.Create(output_path, width, height, 1, gdal.GDT_Int32, options)
