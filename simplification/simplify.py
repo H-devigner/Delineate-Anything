@@ -89,17 +89,33 @@ def simplify(config):
 
 
 def simplify_internal(src_gpkg, src_layer_name, dst_gpkg, dst_layer_name, densify_step, epsilon, region_size, num_workers, fid_column):
-    clone_layer_schema(src_gpkg, src_layer_name, dst_gpkg, dst_layer_name, epsilon)
+    dst_ds, dst_layer = clone_layer_schema(
+        src_gpkg, src_layer_name, dst_gpkg, dst_layer_name, epsilon
+    )
+    dst_layer.SyncToDisk()
+    dst_ds.FlushCache()
+    dst_layer = None
+    dst_ds = None
     
+    ds = ogr.Open(src_gpkg, 0)
+    layer = ds.GetLayerByName(src_layer_name)
+    total_features = layer.GetFeatureCount()
+    if total_features == 0:
+        layer = None
+        ds = None
+        return
+
+    extent = layer.GetExtent()
+    if extent is None:
+        layer = None
+        ds = None
+        return
+
     dx = (region_size[0] - 1) * densify_step[0]
     dy = (region_size[1] - 1) * densify_step[1]
     width = (region_size[0] - 1) * densify_step[0]
     height = (region_size[1] - 1) * densify_step[1]
 
-    ds = ogr.Open(src_gpkg, 0)
-    layer = ds.GetLayerByName(src_layer_name)
-    total_features = layer.GetFeatureCount()
-    extent = layer.GetExtent()
     total_extent = [np.float64(extent[0]), np.float64(extent[1]), np.float64(extent[2]), np.float64(extent[3])]
     minx, _, miny, _ = total_extent
     maxx = minx + width
